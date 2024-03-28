@@ -7,4 +7,5 @@
     },
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "charliermarsh.ruff",
+    "ruff.organizeImports": false 
 }
