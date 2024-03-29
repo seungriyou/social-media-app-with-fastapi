@@ -4,5 +4,6 @@ __pycache__
 .env
 *.db
 .venv
-.vscode/
 *.png
+.pytest_cache
+.ruff_cache
