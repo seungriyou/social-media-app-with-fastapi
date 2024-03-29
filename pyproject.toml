@@ -22,6 +22,6 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.taskipy.tasks]
-run_dev = { cmd = "uvicorn socialapi.main:app --reload", help = "run fastapi app" }
+app = { cmd = "uvicorn socialapi.main:app --reload", help = "run fastapi app" }
 lint = { cmd = "ruff format . && ruff check --fix .", help = "run linters with autofix" }
 lint_check = { cmd = "ruff format --check . && ruff check .", help = "run ruff linter" }
