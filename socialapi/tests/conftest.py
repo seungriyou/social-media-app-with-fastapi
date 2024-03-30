@@ -1,3 +1,4 @@
+import os
 from typing import AsyncGenerator, Generator  # fixture의 type hint
 
 import pytest  # 어떤 function이 fixture를 정의하는지 알리기 위해
@@ -6,10 +7,13 @@ from fastapi.testclient import TestClient
 # FastAPI server를 시작하지 않고서도 test 가능
 from httpx import ASGITransport, AsyncClient  # API로 request를 보내는 역할
 
-from socialapi.main import app
-from socialapi.routers.post import comment_table, post_table
+# overwrite ENV_STATUS = "test" before importing modules
+os.environ["ENV_STATE"] = "test"
 
-# fixtures: ways to share data between multiple tests
+from socialapi.database import database  # noqa: E402
+from socialapi.main import app  # noqa: E402
+
+# NOTE: fixtures = ways to share data between multiple tests
 
 
 @pytest.fixture(scope="session")  # runs only once for the entire test session
@@ -26,9 +30,9 @@ def client() -> Generator:
 
 @pytest.fixture(autouse=True)  # runs at every test (test parameter로 안 넣어도 됨)
 async def db() -> AsyncGenerator:  # 추후 DB로 바꿀 것이므로 async
-    post_table.clear()
-    comment_table.clear()
-    yield
+    await database.connect()  # at the beginning of test function, connect to database
+    yield  # run test function (pause this fixture)
+    await database.disconnect()  # disconnect from db and rollback
 
 
 # httpx를 이용하여 API에게 request를 보내는 역할 (test parameter로 넣기)

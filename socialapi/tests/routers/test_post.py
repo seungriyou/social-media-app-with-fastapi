@@ -47,7 +47,7 @@ async def test_create_post(async_client: AsyncClient):
     assert response.status_code == status.HTTP_201_CREATED
     # 나중에 response에 다른 정보가 추가될 수 있는데, 그때마다 코드를 수정하지 않기 위해
     # ==(동일)가 아닌 <=(포함)으로 assert
-    assert {"id": 0, "body": body}.items() <= response.json().items()
+    assert {"id": 1, "body": body}.items() <= response.json().items()
 
 
 @pytest.mark.anyio
@@ -81,7 +81,7 @@ async def test_create_comment(async_client: AsyncClient, created_post: dict):
 
     assert response.status_code == status.HTTP_201_CREATED
     assert {
-        "id": 0,
+        "id": 1,
         "body": body,
         "post_id": created_post["id"],
     }.items() <= response.json().items()
