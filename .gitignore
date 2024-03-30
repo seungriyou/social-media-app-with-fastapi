@@ -7,3 +7,4 @@ __pycache__
 *.png
 .pytest_cache
 .ruff_cache
+*.sqlite3

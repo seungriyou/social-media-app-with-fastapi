@@ -5,6 +5,7 @@ help:
 	@echo " install-dev	: Install dependencies for development"
 	@echo " run		: Run application"
 	@echo " test		: Run test suite"
+	@echo " migrate	: Migrate database with alembic"
 	@echo " lint		: Fix with linter"
 	@echo " lint-check	: Check with linter"
 	@echo " tree		: Show project directory structure as tree"
@@ -38,13 +39,13 @@ lint-check:
 tree:
 	tree -a -I '__pycache__|*.pyc|*.pyo|.pytest_cache|.venv|.git|.idea|__init__.py'
 
+.PHONY: migrate
+migrate:
+	alembic revision --autogenerate && alembic upgrade head
+
 # .PHONY: run
 # run:
 # 	poetry run alembic upgrade head && poetry run uvicorn src.main:app --reload
-
-# .PHONY: migrate
-# migrate:
-# 	poetry run alembic revision --autogenerate && poetry run alembic upgrade head
 
 # .PHONY: install
 # install:

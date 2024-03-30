@@ -40,7 +40,8 @@ engine = create_engine(
 )
 
 # <4> actually create tables (that metadata object stores) in database server
-metadata.create_all(engine)
+# (update) comment out for alembic migration
+# metadata.create_all(engine)
 
 # <5> get database object with which we can interact
 database = databases.Database(
