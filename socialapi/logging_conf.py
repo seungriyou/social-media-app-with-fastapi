@@ -17,7 +17,7 @@ def configure_logging() -> None:
             },
             "handlers": {
                 "default": {
-                    "class": "logging.StreamHandler",
+                    "class": "rich.logging.RichHandler",  # -- change to rich handler
                     "level": "DEBUG",
                     "formatter": "console",  # -- one of the "formatters"
                 }
@@ -30,7 +30,11 @@ def configure_logging() -> None:
                     if isinstance(config, DevConfig)
                     else "INFO",  # -- "DEBUG" level only in dev mode
                     "propagate": False,  # -- socialapi logger doesn't send any logs to its parent(= root)
-                }
+                },
+                # for packages (for better readability)
+                "uvicorn": {"handlers": ["default"], "level": "INFO"},
+                "databases": {"handlers": ["default"], "level": "WARNING"},
+                "aiosqlite": {"handlers": ["default"], "level": "WARNING"},
             },
         }
     )
