@@ -1,12 +1,39 @@
+import datetime
 import logging
 
+from fastapi import HTTPException, status
+from jose import jwt
 from passlib.context import CryptContext
 
+from socialapi.config import config
 from socialapi.database import database, user_table
 
 logger = logging.getLogger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"])
+
+credentials_exception = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials"
+)
+
+
+# for easy testing
+def access_token_expire_minutes() -> int:
+    return 30
+
+
+def create_access_token(email: str) -> str:
+    logger.debug("Creating access token", extra={"email": email})
+    expire = datetime.datetime.now(datetime.UTC) + datetime.timedelta(
+        minutes=access_token_expire_minutes()
+    )
+
+    jwt_data = {"sub": email, "exp": expire}
+    encoded_jwt = jwt.encode(
+        jwt_data, key=config.JWT_SECRET_KEY, algorithm=config.JWT_ALGORITHM
+    )
+
+    return encoded_jwt
 
 
 def get_password_hash(password: str) -> str:
@@ -25,3 +52,21 @@ async def get_user(email: str):
     result = await database.fetch_one(query)
     if result:
         return result
+
+
+async def authenticate_user(email: str, password: str):
+    logger.debug("Authenticating user", extra={"email": email})
+
+    # 1. DB에서 email이 일치하는 사용자 찾기
+    user = await get_user(email)
+
+    # 2. 일치하는 사용자가 없으면 exception
+    if not user:
+        raise credentials_exception
+
+    # 3. password가 일치하지 않으면 exception
+    if not verify_password(password, user.password):
+        raise credentials_exception
+
+    # 4. 찾은 사용자 반환
+    return user

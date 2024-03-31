@@ -12,9 +12,16 @@ class BaseConfig(BaseSettings):
 
 
 class GlobalConfig(BaseConfig):
+    # Database
     DATABASE_URL: str | None = None
     DB_FORCE_ROLL_BACK: bool = False
+
+    # Logging
     LOGTAIL_API_KEY: str | None = None
+
+    # Security
+    JWT_SECRET_KEY: str | None = None
+    JWT_ALGORITHM: str = "HS256"
 
 
 class DevConfig(GlobalConfig):
@@ -30,6 +37,7 @@ class TestConfig(GlobalConfig):
     # hardcoded, but are defaults that can be overwritten
     DATABASE_URL: str = "sqlite:///test.db"
     DB_FORCE_ROLL_BACK: bool = True  # -- important!
+    JWT_SECRET_KEY: str = "163a30ff9545d7790e7e64077f4a12aaa46194f95feb02c6e9f53a650d4b62b3ec83929597a2f1f608e02686c1aceff16eda5c0bb8056c8b0a54367ca933d2b0"
 
     model_config = SettingsConfigDict(env_prefix="TEST_")
 
