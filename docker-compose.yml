@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:16.1-alpine
+    container_name: db
+    restart: always
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+    ports:
+      - ${POSTGRES_PORT}:${POSTGRES_PORT}
+    volumes:
+      - db-data:/var/lib/postgresql/data/pgdata
+
+volumes:
+  db-data:
+  
