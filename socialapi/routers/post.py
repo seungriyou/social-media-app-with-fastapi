@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 
 from socialapi.database import comment_table, database, post_table
 from socialapi.models.post import (
@@ -10,6 +10,8 @@ from socialapi.models.post import (
     UserPostIn,
     UserPostWithComments,
 )
+from socialapi.models.user import User
+from socialapi.security import get_current_user, oauth2_scheme
 
 # NOTE: model = to validate data (that client sends us)
 
@@ -29,8 +31,16 @@ async def find_post(post_id: int):
 
 
 @router.post("/post", response_model=UserPost, status_code=status.HTTP_201_CREATED)
-async def create_post(post: UserPostIn):
+async def create_post(post: UserPostIn, request: Request):
     logger.info("Creating post")
+
+    # (1) oauth2_scheme(): go into the client's request and grab the bearer token or JWT
+    # (2) get_current_user(token): make sure that token is valid
+    # (3) current_user: a user object
+    current_user: User = await get_current_user(await oauth2_scheme(request))  # noqa
+    # in order to create post, user need to login
+    # (1) need to an access token
+    # (2) to get an access token, need to have logged in (of course, registered)
 
     data = post.model_dump()
     query = post_table.insert().values(data)
@@ -55,8 +65,10 @@ async def get_all_posts():
 
 
 @router.post("/comment", response_model=Comment, status_code=status.HTTP_201_CREATED)
-async def create_comment(comment: CommentIn):
+async def create_comment(comment: CommentIn, request: Request):
     logger.info("Creating comment")
+
+    current_user: User = await get_current_user(await oauth2_scheme(request))  # noqa
 
     post = await find_post(
         comment.post_id
