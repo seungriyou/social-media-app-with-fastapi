@@ -1,8 +1,21 @@
 import logging
 
+from passlib.context import CryptContext
+
 from socialapi.database import database, user_table
 
 logger = logging.getLogger(__name__)
+
+pwd_context = CryptContext(schemes=["bcrypt"])
+
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    # NOTE: 같은 password를 두 번 hash 하더라도, 그 값은 다르다! 따라서 verfy() 메서드를 이용한다.
+    return pwd_context.verify(plain_password, hashed_password)
 
 
 async def get_user(email: str):
