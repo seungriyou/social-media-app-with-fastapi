@@ -16,6 +16,9 @@ from socialapi.main import app  # noqa: E402
 
 # NOTE: fixtures = ways to share data between multiple tests
 
+# NOTE: table 구조를 바꿀 때마다 test.db를 삭제해야 한다!
+metadata.create_all(engine)
+
 
 @pytest.fixture(scope="session")  # runs only once for the entire test session
 def anyio_backend():
@@ -31,9 +34,6 @@ def client() -> Generator:
 
 @pytest.fixture(autouse=True)  # runs at every test (test parameter로 안 넣어도 됨)
 async def db() -> AsyncGenerator:  # 추후 DB로 바꿀 것이므로 async
-    # create tables
-    metadata.create_all(engine)
-
     await database.connect()  # at the beginning of test function, connect to database
     yield  # run test function (pause this fixture)
     await database.disconnect()  # disconnect from db and rollback
