@@ -8,18 +8,26 @@ def configure_logging() -> None:
         {
             "version": 1,
             "disable_existing_loggers": False,
+            "filters": {
+                "correlation_id": {
+                    # NOTE: same as `filter = asgi_correlation_id.CorrelationIdFilter(**kwargs)`
+                    "()": "asgi_correlation_id.CorrelationIdFilter",
+                    "uuid_length": 8 if isinstance(config, DevConfig) else 32,
+                    "default_value": "-",
+                }
+            },
             "formatters": {
                 "console": {
                     "class": "logging.Formatter",
                     "datefmt": "%Y-%m-%dT%H:%M:%S",
-                    "format": "%(name)s:%(lineno)d - %(message)s",
+                    "format": "(%(correlation_id)s) %(name)s:%(lineno)d - %(message)s",
                 },
                 # file logs
                 "file": {
                     "class": "logging.Formatter",
                     "datefmt": "%Y-%m-%dT%H:%M:%S",
                     # standard datetime format for file logs (ISO format standard) -> for analyzing
-                    "format": "%(asctime)s.%(msecs)03dZ | %(levelname)-8s | %(name)s:%(lineno)d - %(message)s",
+                    "format": "%(asctime)s.%(msecs)03dZ | %(levelname)-8s | [%(correlation_id)s] %(name)s:%(lineno)d - %(message)s",
                 },
             },
             "handlers": {
@@ -28,6 +36,7 @@ def configure_logging() -> None:
                     "class": "rich.logging.RichHandler",  # -- change to rich handler
                     "level": "DEBUG",
                     "formatter": "console",  # -- one of the "formatters"
+                    "filters": ["correlation_id"],
                 },
                 # when file size reaches certain size...
                 "rotating_file": {
@@ -39,6 +48,7 @@ def configure_logging() -> None:
                     "maxBytes": 1024 * 1024,  # 1MB per file
                     "backupCount": 5,  # 5 files
                     "encoding": "utf8",
+                    "filters": ["correlation_id"],
                 },
             },
             "loggers": {
