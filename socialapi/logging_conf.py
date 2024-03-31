@@ -24,10 +24,11 @@ def configure_logging() -> None:
                 },
                 # file logs
                 "file": {
-                    "class": "logging.Formatter",
+                    "class": "pythonjsonlogger.jsonlogger.JsonFormatter",
                     "datefmt": "%Y-%m-%dT%H:%M:%S",
                     # standard datetime format for file logs (ISO format standard) -> for analyzing
-                    "format": "%(asctime)s.%(msecs)03dZ | %(levelname)-8s | [%(correlation_id)s] %(name)s:%(lineno)d - %(message)s",
+                    # when using json logger, just list variables (don't care the format)
+                    "format": "%(asctime)s %(msecs)03d %(levelname)-8s %(correlation_id)s %(name)s %(lineno)d %(message)s",
                 },
             },
             "handlers": {
