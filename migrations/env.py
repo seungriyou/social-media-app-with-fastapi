@@ -3,11 +3,14 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+from socialapi.config import config as cfg
 from socialapi.database import metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+config.set_main_option("sqlalchemy.url", cfg.DATABASE_URL)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
