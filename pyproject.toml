@@ -17,6 +17,7 @@ alembic = "^1.13.1"
 rich = "^13.7.1"
 asgi-correlation-id = "^4.3.1"
 python-json-logger = "^2.0.7"
+logtail-python = "^0.2.10"
 
 
 [tool.poetry.group.dev.dependencies]

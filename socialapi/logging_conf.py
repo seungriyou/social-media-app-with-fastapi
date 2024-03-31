@@ -1,7 +1,7 @@
 import logging
 from logging.config import dictConfig
 
-from socialapi.config import DevConfig, config
+from socialapi.config import DevConfig, ProdConfig, config
 
 
 # custom filter for hiding emails
@@ -22,7 +22,7 @@ class EmailObfuscationFilter(logging.Filter):
     """
 
     def __init__(self, name: str = "", obfuscated_length: int = 2) -> None:
-        super().__init(name)
+        super().__init__(name)
         self.obfuscated_length = obfuscated_length
 
     def filter(self, record: logging.LogRecord) -> bool:
@@ -39,6 +39,12 @@ class EmailObfuscationFilter(logging.Filter):
         if "email" in record.__dict__:
             record.email = obfuscated(record.email, self.obfuscated_length)
         return True
+
+
+# enable logtail only in production
+handlers = ["default", "rotating_file"]
+if isinstance(config, ProdConfig):
+    handlers.append("logtail")
 
 
 def configure_logging() -> None:
@@ -94,14 +100,18 @@ def configure_logging() -> None:
                     "encoding": "utf8",
                     "filters": ["correlation_id", "email_obfuscation"],
                 },
+                "logtail": {
+                    "class": "logtail.LogtailHandler",
+                    "level": "DEBUG",
+                    "formatter": "console",
+                    "filters": ["correlation_id", "email_obfuscation"],
+                    "source_token": config.LOGTAIL_API_KEY,
+                },
             },
             "loggers": {
                 # socialapi is the top level in this logger hierarchy
                 "socialapi": {  # -- name of the top directory
-                    "handlers": [
-                        "default",
-                        "rotating_file",
-                    ],  # -- some of the "handlers"
+                    "handlers": handlers,
                     "level": "DEBUG"
                     if isinstance(config, DevConfig)
                     else "INFO",  # -- "DEBUG" level only in dev mode
