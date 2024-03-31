@@ -10,7 +10,8 @@ from httpx import ASGITransport, AsyncClient  # API로 request를 보내는 역�
 # overwrite ENV_STATUS = "test" before importing modules
 os.environ["ENV_STATE"] = "test"
 
-from socialapi.database import database  # noqa: E402
+from socialapi.database import metadata  # noqa: E402
+from socialapi.database import database, engine, user_table  # noqa: E402
 from socialapi.main import app  # noqa: E402
 
 # NOTE: fixtures = ways to share data between multiple tests
@@ -30,6 +31,9 @@ def client() -> Generator:
 
 @pytest.fixture(autouse=True)  # runs at every test (test parameter로 안 넣어도 됨)
 async def db() -> AsyncGenerator:  # 추후 DB로 바꿀 것이므로 async
+    # create tables
+    metadata.create_all(engine)
+
     await database.connect()  # at the beginning of test function, connect to database
     yield  # run test function (pause this fixture)
     await database.disconnect()  # disconnect from db and rollback
@@ -43,3 +47,17 @@ async def async_client(client) -> AsyncGenerator:
         transport=ASGITransport(app=app), base_url=client.base_url
     ) as ac:
         yield ac
+
+
+@pytest.fixture()
+async def registered_user(async_client: AsyncClient) -> dict:
+    # register user
+    user_details = {"email": "test@example.net", "password": "1234"}
+    await async_client.post("/register", json=user_details)
+
+    # fetch the information we created & add id
+    query = user_table.select().where(user_table.c.email == user_details["email"])
+    user = await database.fetch_one(query)
+    user_details["id"] = user.index
+
+    return user_details

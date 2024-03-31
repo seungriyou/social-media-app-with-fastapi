@@ -32,6 +32,13 @@ comment_table = Table(
     Column("post_id", ForeignKey("posts.id"), nullable=False),
 )
 
+user_table = Table(
+    "users",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("email", String, unique=True),
+    Column("password", String),
+)
 
 # <3> engine allows SQLAlchemy to connect to a specific type of database
 engine = create_engine(
