@@ -42,6 +42,14 @@ user_table = Table(
     Column("password", String),
 )
 
+like_table = Table(
+    "likes",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("post_id", ForeignKey("posts.id"), nullable=False),
+    Column("user_id", ForeignKey("users.id"), nullable=False),
+)
+
 # <3> engine allows SQLAlchemy to connect to a specific type of database
 engine = create_engine(
     config.DATABASE_URL,

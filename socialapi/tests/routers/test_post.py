@@ -32,6 +32,17 @@ async def create_comment(
     return response.json()
 
 
+async def like_post(
+    post_id: int, async_client: AsyncClient, logged_in_token: str
+) -> dict:
+    response = await async_client.post(
+        "/like",
+        json={"post_id": post_id},
+        headers={"Authorization": f"Bearer {logged_in_token}"},
+    )
+    return response.json()  # for returning api response result as json
+
+
 @pytest.fixture()
 async def created_post(async_client: AsyncClient, logged_in_token: str):
     # fixture는 dependency injection 지원 (async_client가 injected dynamically)
@@ -103,6 +114,18 @@ async def test_create_post_missing_data(
     )
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+@pytest.mark.anyio
+async def test_like_post(
+    async_client: AsyncClient, created_post: dict, logged_in_token: str
+):
+    response = await async_client.post(
+        "/like",
+        json={"post_id": created_post["id"]},
+        headers={"Authorization": f"Bearer {logged_in_token}"},
+    )
+    assert response.status_code == status.HTTP_201_CREATED
 
 
 @pytest.mark.anyio

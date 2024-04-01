@@ -3,10 +3,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from socialapi.database import comment_table, database, post_table
+from socialapi.database import comment_table, database, like_table, post_table
 from socialapi.models.post import (
     Comment,
     CommentIn,
+    PostLike,
+    PostLikeIn,
     UserPost,
     UserPostIn,
     UserPostWithComments,
@@ -78,6 +80,8 @@ async def create_comment(
 
     data = {**comment.model_dump(), "user_id": current_user.id}
     query = comment_table.insert().values(data)
+    logger.debug(query)
+
     last_record_id = await database.execute(query)
     return {**data, "id": last_record_id}
 
@@ -108,3 +112,23 @@ async def get_post_with_comments(post_id: int):
         "post": post,
         "comments": await get_comments_on_post(post_id),
     }
+
+
+@router.post("/like", response_model=PostLike, status_code=status.HTTP_201_CREATED)
+async def like_post(
+    like: PostLikeIn, current_user: Annotated[User, Depends(get_current_user)]
+):
+    logger.info("Liking post")
+
+    post = await find_post(like.post_id)
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Post not found"
+        )
+
+    data = {**like.model_dump(), "user_id": current_user.id}
+    query = like_table.insert().values(data)
+    logger.debug(query)
+
+    last_record_id = await database.execute(query)
+    return {**data, "id": last_record_id}
