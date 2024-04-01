@@ -23,6 +23,10 @@ class GlobalConfig(BaseConfig):
     JWT_SECRET_KEY: str | None = None
     JWT_ALGORITHM: str = "HS256"
 
+    # Mailgun
+    MAILGUN_DOMAIN: str | None = None
+    MAILGUN_API_KEY: str | None = None
+
 
 class DevConfig(GlobalConfig):
     model_config = SettingsConfigDict(env_prefix="DEV_")

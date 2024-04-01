@@ -1,11 +1,14 @@
 import os
 from typing import AsyncGenerator, Generator  # fixture의 type hint
+from unittest.mock import AsyncMock, Mock
 
 import pytest  # 어떤 function이 fixture를 정의하는지 알리기 위해
+from fastapi import status
 from fastapi.testclient import TestClient
 
 # FastAPI server를 시작하지 않고서도 test 가능
-from httpx import ASGITransport, AsyncClient  # API로 request를 보내는 역할
+from httpx import Request  # API로 request를 보내는 역할
+from httpx import ASGITransport, AsyncClient, Response
 
 # overwrite ENV_STATUS = "test" before importing modules
 os.environ["ENV_STATE"] = "test"
@@ -79,3 +82,22 @@ async def logged_in_token(async_client: AsyncClient, confirmed_user: dict) -> st
     # registered_user includes user id, but pydantic strips away if doesn't need it
     response = await async_client.post("/token", json=confirmed_user)
     return response.json()["access_token"]
+
+
+@pytest.fixture(autouse=True)
+def mock_httpx_client(mocker):
+    """test 시에는 mailgun으로 post request 보내는 동작이 실행되지 않도록 한다."""
+
+    # `socialapi.tasks.httpx.AsyncClient`를 통해 request를 보낼 때마다, 실제로 API를 호출하지 않고 200 return 하도록 한다.
+    mocked_client = mocker.patch("socialapi.tasks.httpx.AsyncClient")
+
+    mocked_async_client = Mock()
+    # NOTE: response는 200, 빈 content로 설정하고, 받은 request는 home URL(//)로부터 POST로 보내졌다고 설정한다.
+    response = Response(
+        status_code=status.HTTP_200_OK, content="", request=Request("POST", "//")
+    )
+    mocked_async_client.post = AsyncMock(return_value=response)
+    mocked_client.return_value.__aenter__.return_value = mocked_async_client
+
+    # for the case we need to use it somewhere
+    return mocked_async_client
