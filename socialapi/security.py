@@ -31,13 +31,31 @@ def access_token_expire_minutes() -> int:
     return 30
 
 
+def confirm_token_expire_minutes() -> int:
+    return 1440  # 24 hours
+
+
 def create_access_token(email: str) -> str:
     logger.debug("Creating access token", extra={"email": email})
     expire = datetime.datetime.now(datetime.UTC) + datetime.timedelta(
         minutes=access_token_expire_minutes()
     )
 
-    jwt_data = {"sub": email, "exp": expire}
+    jwt_data = {"sub": email, "exp": expire, "type": "access"}
+    encoded_jwt = jwt.encode(
+        jwt_data, key=config.JWT_SECRET_KEY, algorithm=config.JWT_ALGORITHM
+    )
+
+    return encoded_jwt
+
+
+def create_confirmation_token(email: str) -> str:
+    logger.debug("Creating confirmation token", extra={"email": email})
+    expire = datetime.datetime.now(datetime.UTC) + datetime.timedelta(
+        minutes=confirm_token_expire_minutes()
+    )
+
+    jwt_data = {"sub": email, "exp": expire, "type": "confirmation"}
     encoded_jwt = jwt.encode(
         jwt_data, key=config.JWT_SECRET_KEY, algorithm=config.JWT_ALGORITHM
     )
@@ -88,9 +106,15 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         payload = jwt.decode(
             token, key=config.JWT_SECRET_KEY, algorithms=[config.JWT_ALGORITHM]
         )
+
         # get email from token
         email = payload.get("sub")
         if email is None:
+            raise credentials_exception
+
+        # check if the type is "access" ("confirmation" token shouldn't be accepted)
+        _type = payload.get("type")
+        if _type is None or _type != "access":
             raise credentials_exception
 
     # if token is expired
