@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
 
 from socialapi import tasks
 from socialapi.database import database, user_table
@@ -18,8 +18,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+# NOTE: BackgroundTasks: FastAPI will inject what you need into this variable (any function available)
+# if the function is async, FastAPI awaits for it
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-async def register(user: UserIn, request: Request):
+async def register(user: UserIn, background_tasks: BackgroundTasks, request: Request):
     if await get_user(user.email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -34,8 +36,9 @@ async def register(user: UserIn, request: Request):
 
     await database.execute(query)
 
-    # send email confirmation
-    await tasks.send_user_registration_email(
+    # send email confirmation (modify: await -> background task)
+    background_tasks.add_task(
+        tasks.send_user_registration_email,  # -- just passing the function (followings are arguments)
         email=user.email,
         # NOTE: request.url_for(): generate a URL for a particular endpoint
         confirmation_url=request.url_for(
