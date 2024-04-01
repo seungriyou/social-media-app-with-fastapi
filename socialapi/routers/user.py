@@ -2,6 +2,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Request, status
 
+from socialapi import tasks
 from socialapi.database import database, user_table
 from socialapi.models.user import UserIn
 from socialapi.security import (
@@ -33,13 +34,16 @@ async def register(user: UserIn, request: Request):
 
     await database.execute(query)
 
-    return {
-        "detail": "User created. Please confirm your email",
-        "confirmation_url": request.url_for(
+    # send email confirmation
+    await tasks.send_user_registration_email(
+        email=user.email,
+        # NOTE: request.url_for(): generate a URL for a particular endpoint
+        confirmation_url=request.url_for(
             "confirm_email", token=create_confirmation_token(user.email)
         ),
-        # NOTE: request.url_for(): generate a URL for a particular endpoint
-    }
+    )
+
+    return {"detail": "User created. Please confirm your email"}
 
 
 @router.post("/token")

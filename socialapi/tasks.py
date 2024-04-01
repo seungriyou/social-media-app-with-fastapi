@@ -38,7 +38,7 @@ async def send_simple_email(to: str, subject: str, body: str):
             ) from err
 
 
-async def send_user_registeration_email(email: str, confirmation_url: str):
+async def send_user_registration_email(email: str, confirmation_url: str):
     return await send_simple_email(
         email,
         "[Social REST API] Successfully signed up",
