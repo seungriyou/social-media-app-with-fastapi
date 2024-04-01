@@ -138,7 +138,63 @@ async def test_get_all_posts(async_client: AsyncClient, created_post: dict):
     response = await async_client.get("/post")
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == [created_post]
+    assert response.json() == [{**created_post, "likes": 0}]  # add likes
+    assert created_post.items() <= response.json()[0].items()  # except likes (both ok)
+
+
+# ----- sorting ----- #
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "sorting, expected_order",
+    [
+        ("new", [2, 1]),
+        ("old", [1, 2]),
+    ],
+)
+async def test_get_all_posts_sorting(
+    async_client: AsyncClient,
+    logged_in_token: str,
+    sorting: str,  # parameterize
+    expected_order: list[int],  # parameterize
+):
+    """parameterizing in pytest"""
+
+    # create two posts for sorting
+    await create_post("Test Post 1", async_client, logged_in_token)
+    await create_post("Test Post 2", async_client, logged_in_token)
+
+    response = await async_client.get("/post", params={"sorting": sorting})
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+    post_ids = [post["id"] for post in data]
+    assert post_ids == expected_order
+
+
+@pytest.mark.anyio
+async def test_get_all_posts_sort_likes(
+    async_client: AsyncClient, logged_in_token: str
+):
+    # create two posts for sorting
+    await create_post("Test Post 1", async_client, logged_in_token)
+    await create_post("Test Post 2", async_client, logged_in_token)
+
+    # like post 1
+    await like_post(1, async_client, logged_in_token)
+
+    response = await async_client.get("/post", params={"sorting": "most_likes"})
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+    post_ids = [post["id"] for post in data]
+    expected_order = [1, 2]  # default value와 다른 값이 되도록 설계
+    assert post_ids == expected_order
+
+
+@pytest.mark.anyio
+async def test_get_all_posts_wrong_sorting(async_client: AsyncClient):
+    response = await async_client.get("/post", params={"sorting": "wrong"})
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 # ----- comment ----- #

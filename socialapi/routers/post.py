@@ -1,8 +1,9 @@
 import logging
+from enum import Enum
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import desc, func, select
 
 from socialapi.database import comment_table, database, like_table, post_table
 from socialapi.models.post import (
@@ -13,6 +14,7 @@ from socialapi.models.post import (
     UserPost,
     UserPostIn,
     UserPostWithComments,
+    UserPostWithLikes,
 )
 from socialapi.models.user import User
 from socialapi.security import get_current_user
@@ -76,12 +78,37 @@ async def create_post(
     return {**data, "id": last_record_id}
 
 
-@router.get("/post", response_model=list[UserPost])
-async def get_all_posts():
+class PostSorting(str, Enum):
+    """
+    [ Enum의 좋은 점 ]
+    (1) 추후 string을 바꾸더라도, 여전히 PostSorting.new 와 같이 사용 가능하므로 코드 수정이 필요 없다.
+    (2) PostSorting의 only 세 가지 option 이라는 점을 의미하며, FastAPI에서 query parameter로 받을 때 validate 해준다.
+    """
+
+    new = "new"  # PostSorting.new
+    old = "old"
+    most_likes = "most_likes"
+
+
+@router.get("/post", response_model=list[UserPostWithLikes])
+async def get_all_posts(sorting: PostSorting = PostSorting.new):
+    """
+    get all posts with their likes, sorted by three criteria
+        - parameter인 sorting이 Pydantic model이 아니기 때문에, query string parameter로 들어와야 한다.
+        - ex. http://api.com/post?sorting=most_likes
+    """
+
     logger.info("Getting all posts")
 
-    # Pydantic이 list[UserPost]를 JSON으로 변환해서 response로 전달
-    query = post_table.select()
+    match sorting:
+        case PostSorting.new:
+            # if you have an actual column object, can call the desc() method on it
+            query = select_post_and_likes.order_by(post_table.c.id.desc())
+        case PostSorting.old:
+            query = select_post_and_likes.order_by(post_table.c.id.asc())
+        case PostSorting.most_likes:
+            # if you don't have an actual column object but know the column name, do it like this
+            query = select_post_and_likes.order_by(desc("likes"))
 
     logger.debug(query)
 
