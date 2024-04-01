@@ -1,5 +1,6 @@
 import databases
 from sqlalchemy import (
+    Boolean,
     Column,
     ForeignKey,
     Integer,
@@ -40,6 +41,7 @@ user_table = Table(
     Column("id", Integer, primary_key=True),
     Column("email", String, unique=True),
     Column("password", String),
+    Column("confirmed", Boolean, default=False),
 )
 
 like_table = Table(
