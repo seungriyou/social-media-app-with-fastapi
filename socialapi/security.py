@@ -138,7 +138,11 @@ async def authenticate_user(email: str, password: str):
     if not verify_password(password, user.password):
         raise create_credentials_exception("Invalid email or password")
 
-    # 4. 찾은 사용자 반환
+    # 4. 사용자가 confirmed 되지 않은 사용자라면
+    if not user.confirmed:
+        raise create_credentials_exception("User has not confirmed email")
+
+    # 5. 찾은 사용자 반환
     return user
 
 

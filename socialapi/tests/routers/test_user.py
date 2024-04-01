@@ -80,13 +80,28 @@ async def test_login_user_not_exists(async_client: AsyncClient):
 
 
 @pytest.mark.anyio
-async def test_login_user(async_client: AsyncClient, registered_user: dict):
-    # registered_user: fixture
+async def test_login_user_not_confirmed(
+    async_client: AsyncClient, registered_user: dict
+):
     response = await async_client.post(
         "/token",
         json={
             "email": registered_user["email"],
             "password": registered_user["password"],
+        },
+    )
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.anyio
+async def test_login_user(async_client: AsyncClient, confirmed_user: dict):
+    # confirmed_user: fixture
+    response = await async_client.post(
+        "/token",
+        json={
+            "email": confirmed_user["email"],
+            "password": confirmed_user["password"],
         },
     )
 
