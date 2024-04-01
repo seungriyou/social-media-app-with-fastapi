@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -14,11 +14,14 @@ logger = logging.getLogger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"])
 
-credentials_exception = HTTPException(
-    status_code=status.HTTP_401_UNAUTHORIZED,
-    detail="Could not validate credentials",
-    headers={"WWW-Authenticate": "Bearer"},
-)
+
+def create_credentials_exception(detail: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail=detail,
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
 
 # set tokenURL as the endpoint that a user can send their email(= username) and password to get a token back
 # (1) helps to build automated documentation
@@ -63,6 +66,45 @@ def create_confirmation_token(email: str) -> str:
     return encoded_jwt
 
 
+def get_subject_for_token_type(
+    token: str, type: Literal["access", "confirmation"]
+) -> str:
+    # NOTE: with `Literal`, that value should be either options
+    """
+    [ Improvements ]
+    1. try 문에는 exception 발생 가능한 코드만 넣기
+    2. type parameter의 경우, 가능한 경우를 한정하기 위해 Literal 넣기
+    3. 기존의 credentials_exception 세분화
+    """
+
+    try:
+        # NOTE: include the code that might raise error only! (better practice)
+        # decode token
+        payload = jwt.decode(
+            token, key=config.JWT_SECRET_KEY, algorithms=[config.JWT_ALGORITHM]
+        )
+    # if token is expired
+    except ExpiredSignatureError as e:
+        raise create_credentials_exception("Token has expired") from e
+    # if authentication failed
+    except JWTError as e:
+        raise create_credentials_exception("Invalid token") from e
+
+    # get email from token
+    email = payload.get("sub")
+    if email is None:
+        raise create_credentials_exception("Token is missing 'sub' field")
+
+    # check if the type is "access" ("confirmation" token shouldn't be accepted)
+    token_type = payload.get("type")
+    if token_type is None or token_type != type:
+        raise create_credentials_exception(
+            f"Token has incorrect type, expected '{type}'"
+        )
+
+    return email
+
+
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
@@ -87,13 +129,14 @@ async def authenticate_user(email: str, password: str):
     # 1. DB에서 email이 일치하는 사용자 찾기
     user = await get_user(email)
 
+    # NOTE: email / password 중 무엇이 틀렸는지 정확히 알려주면 안 된다. (potential attacker)
     # 2. 일치하는 사용자가 없으면 exception
     if not user:
-        raise credentials_exception
+        raise create_credentials_exception("Invalid email or password")
 
     # 3. password가 일치하지 않으면 exception
     if not verify_password(password, user.password):
-        raise credentials_exception
+        raise create_credentials_exception("Invalid email or password")
 
     # 4. 찾은 사용자 반환
     return user
@@ -101,37 +144,11 @@ async def authenticate_user(email: str, password: str):
 
 # dependency injection -> no need to call oauth2_scheme
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
-    try:
-        # decode token
-        payload = jwt.decode(
-            token, key=config.JWT_SECRET_KEY, algorithms=[config.JWT_ALGORITHM]
-        )
-
-        # get email from token
-        email = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-
-        # check if the type is "access" ("confirmation" token shouldn't be accepted)
-        _type = payload.get("type")
-        if _type is None or _type != "access":
-            raise credentials_exception
-
-    # if token is expired
-    except ExpiredSignatureError as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired",
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from e
-
-    # if authentication failed
-    except JWTError as e:
-        raise credentials_exception from e
+    email = get_subject_for_token_type(token, "access")
 
     # get user with email from database
     user = await get_user(email=email)
     if user is None:
-        raise credentials_exception
+        raise create_credentials_exception("Could not find user for this token")
 
     return user
