@@ -2,6 +2,7 @@ import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func, select
 
 from socialapi.database import comment_table, database, like_table, post_table
 from socialapi.models.post import (
@@ -21,6 +22,29 @@ from socialapi.security import get_current_user
 router = APIRouter()
 
 logger = logging.getLogger(__name__)  # socialapi.routers.post
+
+"""
+(1) select(post_table, func.count(like_table.c.id).label("likes"))
+    => SELECT posts.id, posts.body, posts.user_id, count(likes.id) AS likes
+        FROM posts, likes
+(2) select(post_table, func.count(like_table.c.id).label("likes")).select_from(post_table.outerjoin(like_table))
+    => SELECT posts.id, posts.body, posts.user_id, count(likes.id) AS likes 
+        FROM posts LEFT OUTER JOIN likes ON posts.id = likes.post_id
+(3) select(post_table, func.count(like_table.c.id).label("likes")).select_from(post_table.outerjoin(like_table)).group_by(post_table.c.id)
+    => SELECT posts.id, posts.body, posts.user_id, count(likes.id) AS likes 
+        FROM posts LEFT OUTER JOIN likes ON posts.id = likes.post_id
+        GROUP BY posts.id
+"""
+"""
+post_table.select().where(...) (= shortcut)
+== select(post_table).select_from(post_table).where(...) (= repetitive)
+"""
+
+select_post_and_likes = (
+    select(post_table, func.count(like_table.c.id).label("likes"))
+    .select_from(post_table.outerjoin(like_table))
+    .group_by(post_table.c.id)
+)
 
 
 async def find_post(post_id: int):
@@ -102,7 +126,12 @@ async def get_comments_on_post(post_id: int):
 async def get_post_with_comments(post_id: int):
     logger.info("Getting post and its comments")
 
-    post = await find_post(post_id)
+    # modify -> to have "likes" column
+    query = select_post_and_likes.where(post_table.c.id == post_id)
+
+    logger.debug(query)
+
+    post = await database.fetch_one(query)
     if not post:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Post not found"

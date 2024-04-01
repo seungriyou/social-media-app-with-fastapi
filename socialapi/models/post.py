@@ -9,7 +9,13 @@ class UserPost(UserPostIn):
     id: int
     user_id: int
 
-    # NOTE: to return SQLAlchemy row object at endpoint
+    # NOTE: to return SQLAlchemy row object at endpoint (== orm_mode = True)
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserPostWithLikes(UserPost):
+    likes: int
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -26,7 +32,7 @@ class Comment(CommentIn):
 
 
 class UserPostWithComments(BaseModel):
-    post: UserPost
+    post: UserPostWithLikes  # specific post를 request 할 때만 사용하므로 변경
     comments: list[Comment]
 
 
