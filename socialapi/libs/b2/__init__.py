@@ -16,7 +16,7 @@ def b2_api():
 
     # NOTE: auth 정보가 바뀌지 않을 것이므로 lru_cache()
     info = b2.InMemoryAccountInfo()
-    b2_api = b2.B2API(info)
+    b2_api = b2.B2Api(info)
 
     b2_api.authorize_account("production", config.B2_KEY_ID, config.B2_APPLICATION_KEY)
     return b2_api
