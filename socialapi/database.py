@@ -54,16 +54,21 @@ like_table = Table(
 )
 
 # <3> engine allows SQLAlchemy to connect to a specific type of database
-engine = create_engine(
-    config.DATABASE_URL,
-    connect_args={"check_same_thread": False},  # only for sqlite
-)
+connect_args = {"check_same_thread": False} if "sqlite" in config.DATABASE_URL else {}
+engine = create_engine(config.DATABASE_URL, connect_args=connect_args)
 
 # <4> actually create tables (that metadata object stores) in database server
 # (update) comment out for alembic migration
 # metadata.create_all(engine)
 
 # <5> get database object with which we can interact
+"""
+- databases module -> creates connection pool in background
+- grab one from the connection pool
+- but databases module works in an async fashion -> multiple different connections are in use -> can work async
+- ElephantSQL has a limitation on the number of connections that we can have open simultaneously (= 5)
+"""
+db_args = {"min_size": 1, "max_size": 3} if "postgres" in config.DATABASE_URL else {}
 database = databases.Database(
-    config.DATABASE_URL, force_rollback=config.DB_FORCE_ROLL_BACK
+    config.DATABASE_URL, force_rollback=config.DB_FORCE_ROLL_BACK, **db_args
 )
