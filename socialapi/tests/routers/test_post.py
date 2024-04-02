@@ -17,6 +17,14 @@ async def created_comment(
     )
 
 
+@pytest.fixture()
+def mock_generate_cute_creature_api(mocker):
+    return mocker.patch(
+        "socialapi.tasks._generate_cute_creature_api",
+        return_value={"output_url": "http://example.net/image.jpg"},
+    )
+
+
 # ===== tests ===== #
 # ----- post ----- #
 @pytest.mark.anyio  # test마다 우리가 설정한 async platform을 사용하도록 알려야 함 (여기에서는 anyio 사용)
@@ -40,6 +48,27 @@ async def test_create_post(
         "user_id": confirmed_user["id"],
         "image_url": None,
     }.items() <= response.json().items()
+
+
+@pytest.mark.anyio
+async def test_create_post_with_prompt(
+    async_client: AsyncClient, logged_in_token: str, mock_generate_cute_creature_api
+):
+    body = "Test Post"
+
+    response = await async_client.post(
+        "/post?prompt=A cat",  # -- w/ query parameter
+        json={"body": body},
+        headers={"Authorization": f"Bearer {logged_in_token}"},
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    assert {
+        "id": 1,
+        "body": body,
+        "image_url": None,  # -- should be None
+    }.items() <= response.json().items()
+    mock_generate_cute_creature_api.assert_called()  # -- ensure third party API was going to be called
 
 
 @pytest.mark.anyio

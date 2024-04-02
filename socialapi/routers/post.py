@@ -2,7 +2,7 @@ import logging
 from enum import Enum
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy import desc, func, select
 
 from socialapi.database import comment_table, database, like_table, post_table
@@ -18,6 +18,7 @@ from socialapi.models.post import (
 )
 from socialapi.models.user import User
 from socialapi.security import get_current_user
+from socialapi.tasks import generate_and_add_to_post
 
 # NOTE: model = to validate data (that client sends us)
 
@@ -61,7 +62,11 @@ async def find_post(post_id: int):
 
 @router.post("/post", response_model=UserPost, status_code=status.HTTP_201_CREATED)
 async def create_post(
-    post: UserPostIn, current_user: Annotated[User, Depends(get_current_user)]
+    post: UserPostIn,
+    current_user: Annotated[User, Depends(get_current_user)],
+    background_tasks: BackgroundTasks,
+    request: Request,
+    prompt: str = None,  # query string arguments
 ):
     # with Depends(get_current_user), following line can be removed:
     # current_user: User = await get_current_user(await oauth2_scheme(request))  # noqa
@@ -74,6 +79,18 @@ async def create_post(
     logger.debug(query)
 
     last_record_id = await database.execute(query)  # returns generated id
+
+    # image generation & add to post w/ background task
+    if prompt:
+        background_tasks.add_task(
+            generate_and_add_to_post,  # -- task function
+            current_user.email,  # -- arguments
+            last_record_id,
+            request.url_for("get_post_with_comments", post_id=last_record_id),
+            database,
+            prompt,
+        )
+
     # NOTE: it's okay to return dict, because Pydantic knows how to deal with it
     return {**data, "id": last_record_id}
 
