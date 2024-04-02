@@ -27,6 +27,11 @@ class GlobalConfig(BaseConfig):
     MAILGUN_DOMAIN: str | None = None
     MAILGUN_API_KEY: str | None = None
 
+    # Backblaze B2 Cloud
+    B2_KEY_ID: str | None = None
+    B2_APPLICATION_KEY: str | None = None
+    B2_BUCKET_NAME: str | None = None
+
 
 class DevConfig(GlobalConfig):
     model_config = SettingsConfigDict(env_prefix="DEV_")
