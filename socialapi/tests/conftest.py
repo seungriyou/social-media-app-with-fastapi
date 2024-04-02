@@ -16,6 +16,7 @@ os.environ["ENV_STATE"] = "test"
 from socialapi.database import metadata  # noqa: E402
 from socialapi.database import database, engine, user_table  # noqa: E402
 from socialapi.main import app  # noqa: E402
+from socialapi.tests.helpers import create_post  # noqa: E402
 
 # NOTE: fixtures = ways to share data between multiple tests
 
@@ -37,8 +38,12 @@ def client() -> Generator:
 
 @pytest.fixture(autouse=True)  # runs at every test (test parameter로 안 넣어도 됨)
 async def db() -> AsyncGenerator:  # 추후 DB로 바꿀 것이므로 async
+    """
+    `test_tasks.py`의 `test_generate_and_add_to_post_success`
+    -> db를 받아서 사용할 것이므로, yield database 해야 한다!
+    """
     await database.connect()  # at the beginning of test function, connect to database
-    yield  # run test function (pause this fixture)
+    yield database  # run test function (pause this fixture)
     await database.disconnect()  # disconnect from db and rollback
 
 
@@ -101,3 +106,16 @@ def mock_httpx_client(mocker):
 
     # for the case we need to use it somewhere
     return mocked_async_client
+
+
+@pytest.fixture()
+async def created_post(async_client: AsyncClient, logged_in_token: str):
+    # fixture는 dependency injection 지원 (async_client가 injected dynamically)
+    # async_client를 타고타고 올라가서 최종적으로 tests/conftest.py에서 찾게됨
+    """
+    [ `created_post`를 `autouse=True` 하지 않는 이유 ]
+        - test에서 인자로 `created_post`를 받게 되는데, 이렇게 하면 그 test는 이미 생성된 post를 가지고 동작하며, response에 접근할 수 있음
+        - 즉, test가 실행될 때 post가 이미 생성되어 존재해야 하기 때문
+        - naming convention을 통해 test의 가독성을 좋게함
+    """
+    return await create_post("Test Post", async_client, logged_in_token)

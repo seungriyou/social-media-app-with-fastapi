@@ -3,59 +3,11 @@ from fastapi import status
 from httpx import AsyncClient
 
 from socialapi import security
+from socialapi.tests.helpers import create_comment, create_post, like_post
 
 
 # ===== fixtures ===== #
-async def create_post(
-    body: str, async_client: AsyncClient, logged_in_token: str
-) -> dict:
-    # json 파라미터를 사용함으로써, json 형식으로 보내는 데에 필요한 header(ex. content type)를 자동으로 설정
-    response = await async_client.post(
-        "/post",
-        json={"body": body},
-        headers={
-            "Authorization": f"Bearer {logged_in_token}"
-        },  # token should be in the header
-    )
-    return response.json()
-
-
-async def create_comment(
-    body: str, post_id: int, async_client: AsyncClient, logged_in_token: str
-) -> dict:
-    # json 파라미터를 사용함으로써, json 형식으로 보내는 데에 필요한 header(ex. content type)를 자동으로 설정
-    response = await async_client.post(
-        "/comment",
-        json={"body": body, "post_id": post_id},
-        headers={"Authorization": f"Bearer {logged_in_token}"},
-    )
-    return response.json()
-
-
-async def like_post(
-    post_id: int, async_client: AsyncClient, logged_in_token: str
-) -> dict:
-    response = await async_client.post(
-        "/like",
-        json={"post_id": post_id},
-        headers={"Authorization": f"Bearer {logged_in_token}"},
-    )
-    return response.json()  # for returning api response result as json
-
-
-@pytest.fixture()
-async def created_post(async_client: AsyncClient, logged_in_token: str):
-    # fixture는 dependency injection 지원 (async_client가 injected dynamically)
-    # async_client를 타고타고 올라가서 최종적으로 tests/conftest.py에서 찾게됨
-    """
-    [ `created_post`를 `autouse=True` 하지 않는 이유 ]
-        - test에서 인자로 `created_post`를 받게 되는데, 이렇게 하면 그 test는 이미 생성된 post를 가지고 동작하며, response에 접근할 수 있음
-        - 즉, test가 실행될 때 post가 이미 생성되어 존재해야 하기 때문
-        - naming convention을 통해 test의 가독성을 좋게함
-    """
-    return await create_post("Test Post", async_client, logged_in_token)
-
-
+# NOTE: fixtures should be at the highest level possible in the hierarchy
 @pytest.fixture()
 async def created_comment(
     async_client: AsyncClient, created_post: dict, logged_in_token: str

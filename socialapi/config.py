@@ -32,6 +32,9 @@ class GlobalConfig(BaseConfig):
     B2_APPLICATION_KEY: str | None = None
     B2_BUCKET_NAME: str | None = None
 
+    # DeepAI Image Generator
+    DEEPAI_API_KEY: str | None = None
+
 
 class DevConfig(GlobalConfig):
     model_config = SettingsConfigDict(env_prefix="DEV_")
