@@ -8,6 +8,7 @@ class UserPostIn(BaseModel):
 class UserPost(UserPostIn):
     id: int
     user_id: int
+    image_url: str | None = None
 
     # NOTE: to return SQLAlchemy row object at endpoint (== orm_mode = True)
     model_config = ConfigDict(from_attributes=True)

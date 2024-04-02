@@ -24,6 +24,7 @@ post_table = Table(
     Column("id", Integer, primary_key=True),
     Column("body", String),
     Column("user_id", ForeignKey("users.id"), nullable=False),
+    Column("image_url", String),
 )
 
 comment_table = Table(
