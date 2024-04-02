@@ -3,9 +3,9 @@ help:
 	@echo "[ Available tasks ]"
 	@echo " install	: Install dependencies for production"
 	@echo " install-dev	: Install dependencies for development"
-	@echo " run		: Run application"
+	@echo " run		: Migrate database and run application"
 	@echo " test		: Run test suite"
-	@echo " migrate	: Migrate database with alembic"
+	@echo " migrate	: Create a revision and migrate database with alembic"
 	@echo " lint		: Fix with linter"
 	@echo " lint-check	: Check with linter"
 	@echo " tree		: Show project directory structure as tree"
@@ -21,7 +21,7 @@ install-dev:
 
 .PHONY: run
 run:
-	uvicorn socialapi.main:app --reload
+	alembic upgrade head && uvicorn socialapi.main:app --reload
 
 .PHONY: test
 test:
