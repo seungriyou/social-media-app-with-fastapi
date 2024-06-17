@@ -85,7 +85,14 @@ async def confirmed_user(registered_user: dict) -> dict:
 @pytest.fixture()
 async def logged_in_token(async_client: AsyncClient, confirmed_user: dict) -> str:
     # registered_user includes user id, but pydantic strips away if doesn't need it
-    response = await async_client.post("/token", json=confirmed_user)
+    response = await async_client.post(
+        "/token",
+        data={
+            "username": confirmed_user["email"],
+            "password": confirmed_user["password"],
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
     return response.json()["access_token"]
 
 

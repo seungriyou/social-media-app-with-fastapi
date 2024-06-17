@@ -76,7 +76,9 @@ async def test_confirm_user_expired_token(async_client: AsyncClient, mocker):
 @pytest.mark.anyio
 async def test_login_user_not_exists(async_client: AsyncClient):
     response = await async_client.post(
-        "/token", json={"email": "test@example.net", "password": "1234"}
+        "/token",
+        data={"username": "test@example.net", "password": "1234"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -88,10 +90,11 @@ async def test_login_user_not_confirmed(
 ):
     response = await async_client.post(
         "/token",
-        json={
-            "email": registered_user["email"],
+        data={
+            "username": registered_user["email"],
             "password": registered_user["password"],
         },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -102,10 +105,11 @@ async def test_login_user(async_client: AsyncClient, confirmed_user: dict):
     # confirmed_user: fixture
     response = await async_client.post(
         "/token",
-        json={
-            "email": confirmed_user["email"],
+        data={
+            "username": confirmed_user["email"],
             "password": confirmed_user["password"],
         },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
 
     assert response.status_code == status.HTTP_200_OK
