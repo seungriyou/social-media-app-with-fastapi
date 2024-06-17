@@ -1,6 +1,8 @@
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordRequestForm
 
 from socialapi import tasks
 from socialapi.database import database, user_table
@@ -50,9 +52,9 @@ async def register(user: UserIn, background_tasks: BackgroundTasks, request: Req
 
 
 @router.post("/token")
-async def login(user: UserIn):
+async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     # 1. 사용자 인증 (사용자 존재하는지, password 일치하는지) 등
-    user = await authenticate_user(user.email, user.password)
+    user = await authenticate_user(form_data.username, form_data.password)
 
     # 2. access token 생성
     access_token = create_access_token(user.email)
